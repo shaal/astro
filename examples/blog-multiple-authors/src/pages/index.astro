@@ -21,10 +21,9 @@ let description = 'An example blog on Astro';
 let canonicalURL = Astro.request.canonicalURL;
 
 // Data Fetching: List all Markdown posts in the repo.
-let allPosts = Astro.fetchContent<MarkdownFrontmatter>('./post/*.md');
-allPosts.sort((a, b) => new Date(b.date).valueOf() - new Date(a.date).valueOf());
+let allPosts = Object.values(import.meta.globEager('./post/*.md'));
+allPosts.sort((a, b) => new Date(b.data.date).valueOf() - new Date(a.data.date).valueOf());
 let firstPage = allPosts.slice(0, 2);
-
 // Full Astro Component Syntax:
 // https://docs.astro.build/core-concepts/astro-components/
 ---
@@ -32,14 +31,14 @@ let firstPage = allPosts.slice(0, 2);
 <html lang="en">
 	<head>
 		<title>{title}</title>
-		<MainHead {title} {description} image={allPosts[0].image} {canonicalURL} />
+		<MainHead {title} {description} image={allPosts[0].data.image} {canonicalURL} />
 	</head>
 
 	<body>
 		<Nav {title} />
 
 		<main class="wrapper">
-			{allPosts.map((post) => <PostPreview post={post} author={authorData[post.author]} />)}
+			{allPosts.map((post) => <PostPreview post={post.data} author={authorData[post.data.author]} />)}
 		</main>
 
 		<footer>

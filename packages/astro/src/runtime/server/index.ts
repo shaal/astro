@@ -294,16 +294,22 @@ function createFetchContentFn(url: URL, site: URL) {
 		return allEntries
 			.map(([spec, mod]) => {
 				// Only return Markdown files for now.
-				if (!mod.frontmatter) {
+				if (!mod.data) {
 					return;
 				}
 				const urlSpec = new URL(spec, url).pathname;
 				return {
-					...mod.frontmatter,
-					Content: mod.default,
-					content: mod.metadata,
+					...mod.data,
 					file: new URL(spec, url),
 					url: urlSpec.includes('/pages/') ? urlSpec.replace(/^.*\/pages\//, sitePathname).replace(/(\/index)?\.md$/, '') : undefined,
+					getContent: () => mod.default().then((m: any) => m.default),
+					getHeaders: () => mod.default().then((m: any) => m.metadata.headers),
+					Content: () => {
+						throw new Error('Astro.fetchContent() ".Content" property is no longer supported. Use `.getContent()` instead.');
+					},
+					content: () => {
+						throw new Error('Astro.fetchContent() ".content" property is no longer supported. Use `.getMetadata()` instead.');
+					},
 				};
 			})
 			.filter(Boolean);
