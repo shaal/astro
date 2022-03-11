@@ -11,7 +11,7 @@ import { getHmrScript } from './hmr.js';
 import { render as coreRender } from '../core.js';
 import { createModuleScriptElementWithSrcSet } from '../ssr-element.js';
 
-interface SSROptions {
+export interface SSROptions {
 	/** an instance of the AstroConfig */
 	astroConfig: AstroConfig;
 	/** location of file on disk */
@@ -30,9 +30,15 @@ interface SSROptions {
 	routeCache: RouteCache;
 	/** Vite instance */
 	viteServer: vite.ViteDevServer;
+	/** Request object */
+	request: Request;
 }
 
 export type ComponentPreload = [Renderer[], ComponentInstance];
+
+type RenderResponse =
+	{ type: 'html', html: string } |
+	{ type: 'response', response: Response };
 
 const svelteStylesRE = /svelte\?svelte&type=style/;
 
@@ -46,8 +52,8 @@ export async function preload({ astroConfig, filePath, viteServer }: SSROptions)
 }
 
 /** use Vite to SSR */
-export async function render(renderers: Renderer[], mod: ComponentInstance, ssrOpts: SSROptions): Promise<string> {
-	const { astroConfig, filePath, logging, mode, origin, pathname, route, routeCache, viteServer } = ssrOpts;
+export async function render(renderers: Renderer[], mod: ComponentInstance, ssrOpts: SSROptions): Promise<RenderResponse> {
+	const { astroConfig, filePath, logging, mode, origin, pathname, request, route, routeCache, viteServer } = ssrOpts;
 	const legacy = astroConfig.buildOptions.legacyBuild;
 
 	// Add hoisted script tags
@@ -96,6 +102,7 @@ export async function render(renderers: Renderer[], mod: ComponentInstance, ssrO
 		origin,
 		pathname,
 		scripts,
+		request,
 		// Resolves specifiers in the inline hydrated scripts, such as "@astrojs/renderer-preact/client.js"
 		async resolve(s: string) {
 			// The legacy build needs these to remain unresolved so that vite HTML
@@ -114,7 +121,7 @@ export async function render(renderers: Renderer[], mod: ComponentInstance, ssrO
 		site: astroConfig.buildOptions.site,
 	});
 
-	if (route?.type === 'endpoint' || typeof content === 'object') {
+	if (route?.type === 'endpoint' || content.type === 'response') {
 		return content;
 	}
 
@@ -157,23 +164,26 @@ export async function render(renderers: Renderer[], mod: ComponentInstance, ssrO
 	}
 
 	// add injected tags
-	content = injectTags(content, tags);
+	let html = injectTags(content.html, tags);
 
 	// run transformIndexHtml() in dev to run Vite dev transformations
 	if (mode === 'development' && astroConfig.buildOptions.legacyBuild) {
 		const relativeURL = filePath.href.replace(astroConfig.projectRoot.href, '/');
-		content = await viteServer.transformIndexHtml(relativeURL, content, pathname);
+		html = await viteServer.transformIndexHtml(relativeURL, html, pathname);
 	}
 
 	// inject <!doctype html> if missing (TODO: is a more robust check needed for comments, etc.?)
-	if (!/<!doctype html/i.test(content)) {
-		content = '<!DOCTYPE html>\n' + content;
+	if (!/<!doctype html/i.test(html)) {
+		html = '<!DOCTYPE html>\n' + content;
 	}
 
-	return content;
+	return {
+		type: 'html',
+		html
+	};
 }
 
-export async function ssr(ssrOpts: SSROptions): Promise<string> {
+export async function ssr(ssrOpts: SSROptions): Promise<RenderResponse> {
 	try {
 		const [renderers, mod] = await preload(ssrOpts);
 		return await render(renderers, mod, ssrOpts); // note(drew): without "await", errors won’t get caught by errorHandler()

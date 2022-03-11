@@ -1,21 +1,20 @@
 import type { ComponentInstance, EndpointHandler, MarkdownRenderOptions, Params, Props, Renderer, RouteData, SSRElement } from '../../@types/astro';
 import type { LogOptions } from '../logger.js';
 
-import { renderEndpoint, renderHead, renderToResponse } from '../../runtime/server/index.js';
+import { renderEndpoint, renderHead, renderPage } from '../../runtime/server/index.js';
 import { getParams } from '../routing/index.js';
 import { createResult } from './result.js';
 import { findPathItemByKey, RouteCache, callGetStaticPaths } from './route-cache.js';
-import { warn } from '../logger.js';
 
 interface GetParamsAndPropsOptions {
 	mod: ComponentInstance;
-	route: RouteData | undefined;
+	route?: RouteData | undefined;
 	routeCache: RouteCache;
 	pathname: string;
 	logging: LogOptions;
 }
 
-async function getParamsAndProps(opts: GetParamsAndPropsOptions): Promise<[Params, Props]> {
+export async function getParamsAndProps(opts: GetParamsAndPropsOptions): Promise<[Params, Props]> {
 	const { logging, mod, route, routeCache, pathname } = opts;
 	// Handle dynamic routes
 	let params: Params = {};
@@ -49,7 +48,7 @@ async function getParamsAndProps(opts: GetParamsAndPropsOptions): Promise<[Param
 	return [params, pageProps];
 }
 
-interface RenderOptions {
+export interface RenderOptions {
 	legacyBuild: boolean;
 	logging: LogOptions;
 	links: Set<SSRElement>;
@@ -58,6 +57,7 @@ interface RenderOptions {
 	origin: string;
 	pathname: string;
 	scripts: Set<SSRElement>;
+	request: Request,
 	resolve: (s: string) => Promise<string>;
 	renderers: Renderer[];
 	route?: RouteData;
@@ -65,8 +65,8 @@ interface RenderOptions {
 	site?: string;
 }
 
-export async function render(opts: RenderOptions): Promise<string | { location: string }> {
-	const { legacyBuild, links, logging, origin, markdownRender, mod, pathname, scripts, renderers, resolve, route, routeCache, site } = opts;
+export async function render(opts: RenderOptions): Promise<{ type: 'html', html: string } | { type: 'response', response: Response }> {
+	const { legacyBuild, links, logging, origin, markdownRender, mod, pathname, scripts, request, renderers, resolve, route, routeCache, site } = opts;
 
 	const [params, pageProps] = await getParamsAndProps({
 		logging,
@@ -75,11 +75,6 @@ export async function render(opts: RenderOptions): Promise<string | { location: 
 		routeCache,
 		pathname,
 	});
-
-	// For endpoints, render the content immediately without injecting scripts or styles
-	if (route?.type === 'endpoint') {
-		return renderEndpoint(mod as any as EndpointHandler, params);
-	}
 
 	// Validate the page component before rendering the page
 	const Component = await mod.default;
@@ -94,18 +89,20 @@ export async function render(opts: RenderOptions): Promise<string | { location: 
 		origin,
 		params,
 		pathname,
+		request,
 		resolve,
 		renderers,
 		site,
 		scripts,
 	});
 
-	let html = await renderToResponse(result, Component, pageProps, null);
+	let page = await renderPage(result, Component, pageProps, null);
 
-	if(typeof html === 'object') {
-		return html;
+	if(page.type === 'response') {
+		return page;
 	}
 
+	let html = page.html;
 	// handle final head injection if it hasn't happened already
 	if (html.indexOf('<!--astro:head:injected-->') == -1) {
 		html = (await renderHead(result)) + html;
@@ -117,6 +114,9 @@ export async function render(opts: RenderOptions): Promise<string | { location: 
 	if (!legacyBuild && !/<!doctype html/i.test(html)) {
 		html = '<!DOCTYPE html>\n' + html;
 	}
-
-	return html;
+	
+	return {
+		type: 'html',
+		html
+	};
 }

@@ -14,6 +14,7 @@ export interface CreateResultArgs {
 	markdownRender: MarkdownRenderOptions;
 	params: Params;
 	pathname: string;
+	request: Request,
 	renderers: Renderer[];
 	resolve: (s: string) => Promise<string>;
 	site: string | undefined;
@@ -86,15 +87,16 @@ export function createResult(args: CreateResultArgs): SSRResult {
 					canonicalURL,
 					params,
 					url,
+					headers: args.request.headers
 				},
+				// TODO restrict to SSR flag
 				redirect(path: string) {
-					// TOOD property response
-					return {
+					return new Response(null, {
 						status: 301,
 						headers: {
 							Location: path
 						}
-					};
+					});
 				},
 				resolve(path: string) {
 					if (!legacyBuild) {

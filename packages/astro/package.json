@@ -91,6 +91,7 @@
     "path-to-regexp": "^6.2.0",
     "postcss": "^8.3.8",
     "prismjs": "^1.25.0",
+    "readable-web-to-node-stream": "^3.0.2",
     "rehype-slug": "^5.0.0",
     "resolve": "^1.20.0",
     "rollup": "^2.64.0",
