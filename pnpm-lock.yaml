@@ -213,11 +213,13 @@ importers:
     specifiers:
       '@astrojs/renderer-svelte': ^0.5.1
       astro: ^0.24.0-next.1
+      lightcookie: ^1.0.25
       unocss: ^0.15.5
       vite-imagetools: ^4.0.1
     devDependencies:
       '@astrojs/renderer-svelte': link:../../packages/renderers/renderer-svelte
       astro: link:../../packages/astro
+      lightcookie: 1.0.25
       unocss: 0.15.6
       vite-imagetools: 4.0.3
 
@@ -6784,6 +6786,10 @@ packages:
     dependencies:
       prelude-ls: 1.2.1
       type-check: 0.4.0
+    dev: true
+
+  /lightcookie/1.0.25:
+    resolution: {integrity: sha512-SrY/+eBPaKAMnsn7mCsoOMZzoQyCyHHHZlFCu2fjo28XxSyCLjlooKiTxyrXTg8NPaHp1YzWi0lcGG1gDi6KHw==}
     dev: true
 
   /lilconfig/2.0.4:

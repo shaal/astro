@@ -34,6 +34,13 @@ export interface CLIFlags {
 	drafts?: boolean;
 }
 
+export type AstroRequest = Request & {
+	/** get the current canonical URL */
+	canonicalURL: URL;
+	/** get page params (dynamic pages only) */
+	params: Params;
+};
+
 /**
  * Astro.* available in all components
  * Docs: https://docs.astro.build/reference/api-reference/#astro-global
@@ -42,14 +49,7 @@ export interface AstroGlobal extends AstroGlobalPartial {
 	/** set props for this astro component (along with default values) */
 	props: Record<string, number | string | any>;
 	/** get information about this page */
-	request: {
-		/** get the current page URL */
-		url: URL;
-		/** get the current canonical URL */
-		canonicalURL: URL;
-		/** get page params (dynamic pages only) */
-		params: Params;
-	};
+	request: AstroRequest;
 	/** see if slots are used */
 	slots: Record<string, true | undefined> & { has(slotName: string): boolean; render(slotName: string): Promise<string> };
 }

@@ -1,4 +1,4 @@
-import type { AstroGlobal, AstroGlobalPartial, MarkdownParser, MarkdownRenderOptions, Params, Renderer, SSRElement, SSRResult } from '../../@types/astro';
+import type { AstroGlobal, AstroGlobalPartial, AstroRequest, MarkdownParser, MarkdownRenderOptions, Params, Renderer, SSRElement, SSRResult } from '../../@types/astro';
 
 import { bold } from 'kleur/colors';
 import { canonicalURL as getCanonicalURL } from '../util.js';
@@ -63,8 +63,23 @@ class Slots {
 	}
 }
 
+function extendRequest(request: Request, pathname: string, site: string | undefined, origin: string, params: Params): AstroRequest {
+	Object.defineProperties(request, {
+		canonicalURL: {
+			enumerable: true,
+			value: getCanonicalURL('.' + pathname, site || origin),
+		},
+		params: {
+			enumerable: true,
+			value: params
+		}
+	});
+	return request as AstroRequest;
+}
+
 export function createResult(args: CreateResultArgs): SSRResult {
-	const { legacyBuild, origin, markdownRender, params, pathname, renderers, resolve, site: buildOptionsSite } = args;
+	const { legacyBuild, origin, markdownRender, params, pathname, request: webRequest, renderers, resolve, site: buildOptionsSite } = args;
+	const request = extendRequest(webRequest, pathname, buildOptionsSite, origin, params);
 
 	// Create the result object that will be passed into the render function.
 	// This object starts here as an empty shell (not yet the result) but then
@@ -77,18 +92,13 @@ export function createResult(args: CreateResultArgs): SSRResult {
 		createAstro(astroGlobal: AstroGlobalPartial, props: Record<string, any>, slots: Record<string, any> | null) {
 			const site = new URL(origin);
 			const url = new URL('.' + pathname, site);
-			const canonicalURL = getCanonicalURL('.' + pathname, buildOptionsSite || origin);
+			
 			const astroSlots = new Slots(result, slots);
 
 			return {
 				__proto__: astroGlobal,
 				props,
-				request: {
-					canonicalURL,
-					params,
-					url,
-					headers: args.request.headers
-				},
+				request,
 				// TODO restrict to SSR flag
 				redirect(path: string) {
 					return new Response(null, {
