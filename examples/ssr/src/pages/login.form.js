@@ -4,7 +4,7 @@ export function post(params, request) {
 		status: 301,
 		headers: {
 			'Location': '/',
-			'Set-Cookie': 'logged-in=1; Path=/;'
+			'Set-Cookie': 'user-id=1; Path=/; Max-Age=2592000'
 		}
 	});
 }

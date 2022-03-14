@@ -1,6 +1,10 @@
 ---
 import TextDecorationSkip from './TextDecorationSkip.astro';
 import Cart from './Cart.svelte';
+import { getCart } from '../api';
+
+const cart = await getCart();
+const cartCount = cart.items.reduce((sum, item) => sum + item.count, 0);
 ---
 <style>
 	@import url('https://fonts.googleapis.com/css2?family=Lobster&display=swap');
@@ -40,6 +44,6 @@ import Cart from './Cart.svelte';
 			login
 			</span>
 		</a>
-		<Cart client:idle />
+		<Cart client:idle count={cartCount} />
 	</div>
 </header>

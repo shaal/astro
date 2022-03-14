@@ -1,7 +1,7 @@
 ---
 import Header from '../components/Header.astro';
 import Container from '../components/Container.astro';
-import { getUser } from '../api';
+import { getCart } from '../api';
 import { isLoggedIn } from '../request';
 
 if(!isLoggedIn(Astro.request)) {
@@ -10,6 +10,8 @@ if(!isLoggedIn(Astro.request)) {
 
 // This person is logged in
 const user = { name: 'test'} // await getUser();
+const cart = await getCart();
+console.log(cart);
 ---
 <html>
 <head>
@@ -26,6 +28,20 @@ const user = { name: 'test'} // await getUser();
 	<Container tag="main">
 		<h1>Cart</h1>
 		<p>Hi { user.name }! Here are your cart items:</p>
+		<table>
+			<thead>
+				<tr>
+					<th>Item</th>
+					<th>Count</th>
+				</tr>
+			</thead>
+			<tbody>
+				{cart.items.map(item => <tr>
+					<td>{item.name}</td>
+					<td>{item.count}</td>
+				</tr>)}
+			</tbody>
+		</table>
 	</Container>
 </body>
 </html>

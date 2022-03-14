@@ -9,12 +9,21 @@ interface User {
 	id: number;
 }
 
-//let origin: string;
-const { mode } = import.meta.env;
-const origin = mode === 'develepment' ? `http://localhost:3000` : `http://localhost:8085`;
+interface Cart {
+	items: Array<{
+		id: number;
+		name: string;
+		count: number;
+	}>;
+}
+
+const { MODE } = import.meta.env;
+const origin = MODE === 'development' ? `http://127.0.0.1:3000` : `http://127.0.0.1:8085`;
 
 async function get<T>(endpoint: string, cb: (response: Response) => Promise<T>): Promise<T> {
-	const response = await fetch(`${origin}${endpoint}`);
+	const response = await fetch(`${origin}${endpoint}`, {
+		credentials: 'same-origin'
+	});
 	if (!response.ok) {
 		// TODO make this better...
 		return null;
@@ -40,5 +49,28 @@ export async function getUser(): Promise<User> {
 	return get<User>(`/api/user`, async response => {
 		const user: User = await response.json();
 		return user;
+	});
+}
+
+export async function getCart(): Promise<Cart> {
+	return get<Cart>(`/api/cart`, async response => {
+		const cart: Cart = await response.json();
+		return cart;
+	});
+}
+
+export async function addToUserCart(id: number | string, name: string): Promise<void> {
+	await fetch(`${origin}/api/add-to-cart`, {
+		credentials: 'same-origin',
+		method: 'POST',
+		mode: 'no-cors',
+		headers: {
+			'Content-Type': 'application/json',
+			'Cache': 'no-cache'
+		},
+		body: JSON.stringify({
+			id,
+			name
+		})
 	});
 }
